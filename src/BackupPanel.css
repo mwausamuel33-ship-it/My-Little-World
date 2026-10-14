@@ -1,0 +1,43 @@
+.backup-panel {
+  margin-top: 2.5rem;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.backup-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.backup-file-input {
+  display: none;
+}
+
+.backup-hint {
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.backup-status {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.backup-status-success {
+  background: #edf7ee;
+  color: #2f5d34;
+}
+
+.backup-status-error {
+  background: #fdeceb;
+  color: #8a2f2f;
+}

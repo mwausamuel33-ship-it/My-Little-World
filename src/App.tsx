@@ -1,6 +1,7 @@
 
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { db, type JournalEntry } from './db'
+import BackupPanel from './BackupPanel'
 import './App.css'
 
 const MoodCalendar = lazy(() => import('./MoodCalendar'))
@@ -371,6 +372,8 @@ function App() {
             </div>
           )}
         </section>
+
+        <BackupPanel onRestored={loadEntries} />
       </>
     )
   }
