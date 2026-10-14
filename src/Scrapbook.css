@@ -456,3 +456,258 @@
     max-width: none;
   }
 }
+
+/* Sticker library */
+.scrapbook-sticker-library {
+  min-width: 0;
+}
+
+.scrapbook-sticker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.scrapbook-sticker-heading label {
+  display: block;
+  color: #704d5a;
+  font-weight: 750;
+}
+
+.scrapbook-sticker-heading p {
+  margin: 4px 0 0;
+  color: #9a858c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.scrapbook-sticker-count {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #f8e8ed;
+  color: #9b6276;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.scrapbook .scrapbook-sticker-search {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 11px;
+  padding: 10px 12px;
+  border: 1px solid #ead9df;
+  border-radius: 12px;
+  outline: none;
+  background: #fffdfb;
+  color: #604753;
+  font-size: 13px;
+}
+
+.scrapbook .scrapbook-sticker-search:focus {
+  border-color: #bd8295;
+  box-shadow: 0 0 0 3px #bd82951c;
+}
+
+.scrapbook-sticker-categories {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 1px 9px;
+  margin-bottom: 7px;
+  scrollbar-width: thin;
+}
+
+.scrapbook .scrapbook-sticker-categories button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #f0e0e5;
+  border-radius: 999px;
+  background: #fffaf9;
+  color: #876d78;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.scrapbook .scrapbook-sticker-categories button.active {
+  border-color: #bd8295;
+  background: #bd8295;
+  color: #fff;
+}
+
+.scrapbook .scrapbook-sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scrapbook .scrapbook-sticker-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid #f0e5e7;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #fffdfb, #fff6f7);
+  overflow: hidden;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.scrapbook .scrapbook-sticker-card:hover {
+  border-color: #d8a9b8;
+  background: #fff0f4;
+}
+
+.scrapbook .scrapbook-sticker-add {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 86px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 4px 8px;
+  border: 0;
+  background: transparent;
+  color: #715460;
+}
+
+.scrapbook .scrapbook-sticker-add span {
+  font-size: 27px;
+  line-height: 1.25;
+}
+
+.scrapbook .scrapbook-sticker-add small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0 2px;
+  color: #8f7b83;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scrapbook .scrapbook-sticker-favorite {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffffde;
+  color: #bd8295;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.scrapbook .scrapbook-sticker-favorite.is-favorite {
+  background: #f8e1e9;
+  color: #b65375;
+}
+
+.scrapbook-sticker-empty {
+  padding: 14px 8px;
+  color: #9a858c;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .scrapbook .scrapbook-sticker-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Themed sticker collections */
+.scrapbook-collection-section {
+  margin: 14px 0 12px;
+}
+
+.scrapbook-collection-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 9px;
+}
+
+.scrapbook-collection-heading strong {
+  color: #704d5a;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.scrapbook-collection-heading span {
+  color: #a08b93;
+  font-size: 11px;
+}
+
+.scrapbook-collections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scrapbook .scrapbook-collections button {
+  display: flex;
+  min-width: 0;
+  min-height: 76px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 5px;
+  border: 1px solid #f0e0e5;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #fffdfb, #fff5f7);
+  color: #795867;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.scrapbook .scrapbook-collections button:hover {
+  transform: translateY(-2px);
+  border-color: #d8a9b8;
+}
+
+.scrapbook .scrapbook-collections button.active {
+  border-color: #bd8295;
+  background: #f8e6ec;
+  box-shadow: 0 0 0 2px #bd82951a;
+}
+
+.scrapbook .scrapbook-collections button span {
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+.scrapbook .scrapbook-collections button small {
+  max-width: 100%;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 650;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.scrapbook .scrapbook-collections button small + small {
+  color: #a08b93;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.35;
+}

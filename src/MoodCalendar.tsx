@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { db, type JournalEntry, type Mood, type MoodRecord } from './db'
 import './MoodCalendar.css'
@@ -46,13 +45,20 @@ export default function MoodCalendar() {
 
   const [moods, setMoods] = useState<MoodRecord[]>([])
   const [entries, setEntries] = useState<JournalEntry[]>([])
-  const [selectedMood, setSelectedMood] = useState<Mood | ''>('')
-  const [note, setNote] = useState('')
+
+  // Draft values belong to a specific date. This lets us switch dates
+  // without a useEffect synchronizing the form state.
+  const [draftDateKey, setDraftDateKey] = useState('')
+  const [draftMood, setDraftMood] = useState<Mood | ''>('')
+  const [draftNote, setDraftNote] = useState('')
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
+    let cancelled = false
+
     async function loadData() {
       try {
         const [savedMoods, savedEntries] = await Promise.all([
@@ -60,26 +66,47 @@ export default function MoodCalendar() {
           db.entries.toArray(),
         ])
 
-        setMoods(savedMoods)
-        setEntries(savedEntries)
+        if (!cancelled) {
+          setMoods(savedMoods)
+          setEntries(savedEntries)
+        }
       } catch (error) {
         console.error('Could not load mood calendar:', error)
-        setMessage('Could not load your memories. Please refresh and try again.')
+
+        if (!cancelled) {
+          setMessage(
+            'Could not load your memories. Please refresh and try again.',
+          )
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     void loadData()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  useEffect(() => {
-    const existing = moods.find((record) => record.dateKey === selectedDate)
+  const selectedMoodRecord = moods.find(
+    (record) => record.dateKey === selectedDate,
+  )
 
-    setSelectedMood(existing?.mood ?? '')
-    setNote(existing?.note ?? '')
-    setMessage('')
-  }, [selectedDate, moods])
+  // Use the current date's saved values unless the user has edited
+  // a draft for that date during this visit.
+  const selectedMood: Mood | '' =
+    draftDateKey === selectedDate
+      ? draftMood
+      : selectedMoodRecord?.mood ?? ''
+
+  const note =
+    draftDateKey === selectedDate
+      ? draftNote
+      : selectedMoodRecord?.note ?? ''
 
   const calendarDays = (() => {
     const year = visibleMonth.getFullYear()
@@ -101,6 +128,23 @@ export default function MoodCalendar() {
   const selectedDayEntries = entries.filter(
     (entry) => entry.createdAt.slice(0, 10) === selectedDate,
   )
+
+  function selectDate(dateKey: string) {
+    setSelectedDate(dateKey)
+    setMessage('')
+  }
+
+  function selectMood(mood: Mood) {
+    setDraftDateKey(selectedDate)
+    setDraftMood(mood)
+    setMessage('')
+  }
+
+  function updateNote(value: string) {
+    setDraftDateKey(selectedDate)
+    setDraftNote(value)
+    setMessage('')
+  }
 
   async function saveMood() {
     if (!selectedMood) {
@@ -140,6 +184,11 @@ export default function MoodCalendar() {
         ...current.filter((item) => item.dateKey !== selectedDate),
         record,
       ])
+
+      // Keep the saved values as the active draft for the selected date.
+      setDraftDateKey(selectedDate)
+      setDraftMood(record.mood)
+      setDraftNote(record.note)
 
       setMessage('Your mood has been saved. Be gentle with yourself. 💗')
     } catch (error) {
@@ -182,10 +231,7 @@ export default function MoodCalendar() {
                 className={`mood-option ${
                   selectedMood === option.mood ? 'selected' : ''
                 }`}
-                onClick={() => {
-                  setSelectedMood(option.mood)
-                  setMessage('')
-                }}
+                onClick={() => selectMood(option.mood)}
                 aria-pressed={selectedMood === option.mood}
               >
                 <span className="mood-emoji">{option.emoji}</span>
@@ -207,12 +253,13 @@ export default function MoodCalendar() {
             id="mood-note"
             className="mood-note-input"
             value={note}
-            onChange={(event) => setNote(event.target.value)}
+            onChange={(event) => updateNote(event.target.value)}
             placeholder="You can write a little about why you feel this way..."
             rows={4}
           />
 
           <button
+            type="button"
             className="primary-button mood-save-button"
             onClick={() => void saveMood()}
             disabled={saving || loading}
@@ -265,7 +312,9 @@ export default function MoodCalendar() {
 
             {calendarDays.map((day, index) => {
               if (day === null) {
-                return <div className="calendar-blank" key={`blank-${index}`} />
+                return (
+                  <div className="calendar-blank" key={`blank-${index}`} />
+                )
               }
 
               const dateKey = getDateKey(
@@ -295,10 +344,11 @@ export default function MoodCalendar() {
                   className={`calendar-day ${
                     selectedDate === dateKey ? 'selected' : ''
                   } ${dateKey === todayKey ? 'today' : ''}`}
-                  onClick={() => setSelectedDate(dateKey)}
+                  onClick={() => selectDate(dateKey)}
                   aria-label={`${formatDateKey(dateKey)}${
                     moodRecord ? `, mood: ${moodRecord.mood}` : ''
                   }${hasEntry ? ', journal entry saved' : ''}`}
+                  aria-pressed={selectedDate === dateKey}
                 >
                   <span>{day}</span>
                   {emoji ? (
@@ -324,15 +374,12 @@ export default function MoodCalendar() {
               <p>Looking through your memories...</p>
             ) : (
               <>
-                {moods.find((record) => record.dateKey === selectedDate) ? (
+                {selectedMoodRecord ? (
                   <p>
                     {moodOptions.find(
-                      (option) =>
-                        option.mood ===
-                        moods.find((record) => record.dateKey === selectedDate)
-                          ?.mood,
+                      (option) => option.mood === selectedMoodRecord.mood,
                     )?.emoji}{' '}
-                    {moods.find((record) => record.dateKey === selectedDate)?.mood}
+                    {selectedMoodRecord.mood}
                   </p>
                 ) : (
                   <p>No mood recorded for this day.</p>

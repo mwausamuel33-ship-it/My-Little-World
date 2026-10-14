@@ -1,5 +1,12 @@
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from 'react'
 import {
   Stage,
   Layer,
@@ -12,11 +19,17 @@ import {
 import type Konva from 'konva'
 import useImage from 'use-image'
 import { db, type ScrapbookElement, type ScrapbookPage } from './db'
+import {
+  scrapbookStickers,
+  stickerCategories,
+  type StickerCategory,
+} from './scrapbookAssets'
 import './Scrapbook.css'
 
 const WIDTH = 700
 const HEIGHT = 500
 const MAX_HISTORY = 50
+const FAVORITES_KEY = 'my-little-world-sticker-favorites'
 
 const backgrounds = [
   { name: 'Cream', value: '#FFF9EF' },
@@ -29,13 +42,14 @@ const backgrounds = [
 ]
 
 const paperStyles = ['Plain', 'Lined', 'Dotted', 'Grid'] as const
-type PaperStyle = (typeof paperStyles)[number]
 
-const stickers = [
-  '🌸', '🌷', '🌼', '🦋', '💗', '✨', '🌿', '🎀',
-  '⭐', '🧸', '🍓', '☁️', '♡', '୨୧', '🕊️', '🌙',
-  '🍰', '🐇', '💌', '🪻', '☕', '📖', '🤍', '🪷',
-]
+type PaperStyle = (typeof paperStyles)[number]
+type StickerFilter = 'All' | 'Favorites' | StickerCategory
+type StickerCollectionId =
+  | 'soft-girl'
+  | 'nature-notes'
+  | 'little-joys'
+  | 'faith-peace'
 
 interface EditorSnapshot {
   title: string
@@ -43,6 +57,124 @@ interface EditorSnapshot {
   paperStyle: PaperStyle
   elements: ScrapbookElement[]
 }
+
+interface ScrapbookTemplate {
+  id: string
+  name: string
+  emoji: string
+  description: string
+  background: string
+  paperStyle: PaperStyle
+  title: string
+  accent: string
+  elements: {
+    type: ScrapbookElement['type']
+    content: string
+    x: number
+    y: number
+    width: number
+    height: number
+    color: string
+    fontSize: number
+    rotation?: number
+  }[]
+}
+
+const templates: ScrapbookTemplate[] = [
+  {
+    id: 'soft-girl',
+    name: 'Soft Girl',
+    emoji: '🎀',
+    description: 'Pink, sweet and full of little details',
+    background: '#FCE8EC',
+    paperStyle: 'Plain',
+    title: 'Little things I love',
+    accent: '#BD718D',
+    elements: [
+      { type: 'sticker', content: '🎀', x: 42, y: 32, width: 75, height: 70, color: '#BD718D', fontSize: 54, rotation: -10 },
+      { type: 'text', content: 'little things I love', x: 145, y: 45, width: 420, height: 55, color: '#9C536F', fontSize: 34 },
+      { type: 'sticker', content: '🌷', x: 565, y: 45, width: 70, height: 75, color: '#BD718D', fontSize: 48, rotation: 8 },
+      { type: 'text', content: '♡ sweet memories ♡', x: 205, y: 105, width: 300, height: 38, color: '#BD718D', fontSize: 20 },
+      { type: 'sticker', content: '💗', x: 90, y: 190, width: 70, height: 70, color: '#BD718D', fontSize: 48, rotation: -8 },
+      { type: 'sticker', content: '✨', x: 535, y: 175, width: 65, height: 65, color: '#BD718D', fontSize: 44 },
+      { type: 'text', content: 'A little space for my favourite moments...', x: 145, y: 355, width: 410, height: 55, color: '#9C536F', fontSize: 21 },
+      { type: 'sticker', content: '🌸', x: 570, y: 380, width: 65, height: 65, color: '#BD718D', fontSize: 44 },
+    ],
+  },
+  {
+    id: 'nature',
+    name: 'Nature Journal',
+    emoji: '🌿',
+    description: 'Earthy greens and peaceful moments',
+    background: '#E6EEDD',
+    paperStyle: 'Lined',
+    title: 'My little nature journal',
+    accent: '#56775A',
+    elements: [
+      { type: 'sticker', content: '🌿', x: 40, y: 35, width: 80, height: 80, color: '#56775A', fontSize: 55, rotation: -12 },
+      { type: 'text', content: 'nature journal', x: 150, y: 45, width: 410, height: 55, color: '#426448', fontSize: 36 },
+      { type: 'text', content: 'slow days • fresh air • little wonders', x: 140, y: 105, width: 430, height: 35, color: '#56775A', fontSize: 17 },
+      { type: 'sticker', content: '🍃', x: 550, y: 40, width: 70, height: 70, color: '#56775A', fontSize: 48 },
+      { type: 'sticker', content: '🌼', x: 65, y: 200, width: 75, height: 75, color: '#56775A', fontSize: 48 },
+      { type: 'sticker', content: '🦋', x: 540, y: 205, width: 75, height: 70, color: '#56775A', fontSize: 48, rotation: 8 },
+      { type: 'text', content: 'Today, I noticed...', x: 170, y: 345, width: 350, height: 45, color: '#426448', fontSize: 26 },
+      { type: 'text', content: 'Write down a little moment from today.', x: 170, y: 390, width: 370, height: 40, color: '#56775A', fontSize: 18 },
+    ],
+  },
+  {
+    id: 'faith',
+    name: 'Faith & Peace',
+    emoji: '🤍',
+    description: 'A calm page for gratitude and faith',
+    background: '#F0E9FA',
+    paperStyle: 'Dotted',
+    title: 'Grace for today',
+    accent: '#81699E',
+    elements: [
+      { type: 'sticker', content: '🤍', x: 65, y: 35, width: 75, height: 75, color: '#81699E', fontSize: 52 },
+      { type: 'text', content: 'grace for today', x: 160, y: 45, width: 390, height: 55, color: '#70558E', fontSize: 36 },
+      { type: 'sticker', content: '🕊️', x: 550, y: 35, width: 80, height: 75, color: '#81699E', fontSize: 48 },
+      { type: 'text', content: 'Be still, and know.', x: 180, y: 150, width: 340, height: 50, color: '#70558E', fontSize: 28 },
+      { type: 'text', content: 'Psalm 46:10', x: 250, y: 205, width: 200, height: 35, color: '#81699E', fontSize: 20 },
+      { type: 'sticker', content: '✨', x: 100, y: 260, width: 60, height: 60, color: '#81699E', fontSize: 42 },
+      { type: 'text', content: 'Today I am grateful for...', x: 165, y: 330, width: 370, height: 45, color: '#70558E', fontSize: 23 },
+      { type: 'sticker', content: '🌷', x: 545, y: 375, width: 65, height: 65, color: '#81699E', fontSize: 44 },
+    ],
+  },
+  {
+    id: 'moments',
+    name: 'Little Moments',
+    emoji: '🍓',
+    description: 'Playful decorations for everyday memories',
+    background: '#FFF1C9',
+    paperStyle: 'Plain',
+    title: 'The little moments',
+    accent: '#BA744B',
+    elements: [
+      { type: 'sticker', content: '🍓', x: 45, y: 35, width: 75, height: 75, color: '#BA744B', fontSize: 50, rotation: -8 },
+      { type: 'text', content: 'the little moments', x: 145, y: 45, width: 420, height: 55, color: '#9D603F', fontSize: 34 },
+      { type: 'sticker', content: '☀️', x: 565, y: 35, width: 75, height: 75, color: '#BA744B', fontSize: 48 },
+      { type: 'text', content: 'ordinary days, favourite memories', x: 165, y: 105, width: 370, height: 35, color: '#BA744B', fontSize: 18 },
+      { type: 'sticker', content: '🍒', x: 70, y: 195, width: 75, height: 75, color: '#BA744B', fontSize: 48 },
+      { type: 'sticker', content: '🧸', x: 550, y: 190, width: 75, height: 75, color: '#BA744B', fontSize: 48 },
+      { type: 'text', content: 'One moment I want to remember...', x: 145, y: 350, width: 420, height: 55, color: '#9D603F', fontSize: 21 },
+      { type: 'sticker', content: '💌', x: 315, y: 415, width: 65, height: 60, color: '#BA744B', fontSize: 40 },
+    ],
+  },
+]
+
+const stickerCollections: {
+  id: StickerCollectionId
+  name: string
+  emoji: string
+  description: string
+  categories: StickerCategory[]
+}[] = [
+  { id: 'soft-girl', name: 'Soft Girl', emoji: '🎀', description: 'Sweet, pink and playful', categories: ['Cute', 'Flowers'] },
+  { id: 'nature-notes', name: 'Nature Notes', emoji: '🌿', description: 'Little pieces of nature', categories: ['Nature', 'Flowers'] },
+  { id: 'little-joys', name: 'Little Joys', emoji: '🍓', description: 'Everyday treats', categories: ['Food & Drink'] },
+  { id: 'faith-peace', name: 'Faith & Peace', emoji: '🤍', description: 'Faith and quiet moments', categories: ['Faith & Calm'] },
+]
 
 function makeElement(
   type: ScrapbookElement['type'],
@@ -56,7 +188,7 @@ function makeElement(
     x,
     y,
     width: type === 'image' ? 180 : 150,
-    height: type === 'image' ? 150 : type === 'sticker' ? 70 : 70,
+    height: type === 'image' ? 150 : 70,
     rotation: 0,
     content,
     color: '#72515C',
@@ -66,6 +198,26 @@ function makeElement(
 
 function cloneElements(elements: ScrapbookElement[]) {
   return elements.map((element) => ({ ...element }))
+}
+
+function readFavoriteStickers(): string[] {
+  try {
+    const saved = localStorage.getItem(FAVORITES_KEY)
+    if (!saved) return []
+
+    const parsed: unknown = JSON.parse(saved)
+
+    if (
+      Array.isArray(parsed) &&
+      parsed.every((item) => typeof item === 'string')
+    ) {
+      return parsed
+    }
+  } catch {
+    // Storage may be unavailable.
+  }
+
+  return []
 }
 
 function PhotoElement({
@@ -128,6 +280,15 @@ export default function Scrapbook() {
   const [paperStyle, setPaperStyle] = useState<PaperStyle>('Plain')
   const [history, setHistory] = useState<EditorSnapshot[]>([])
   const [future, setFuture] = useState<EditorSnapshot[]>([])
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+
+  const [stickerSearch, setStickerSearch] = useState('')
+  const [stickerCategory, setStickerCategory] = useState<StickerFilter>('All')
+  const [stickerCollection, setStickerCollection] = useState<
+    StickerCollectionId | 'All'
+  >('All')
+  const [favoriteStickers, setFavoriteStickers] =
+    useState<string[]>(readFavoriteStickers)
 
   const stageRef = useRef<Konva.Stage | null>(null)
   const transformerRef = useRef<Konva.Transformer | null>(null)
@@ -136,10 +297,37 @@ export default function Scrapbook() {
   const pageRef = useRef<ScrapbookPage | null>(null)
   const titleRef = useRef(pageTitle)
   const paperRef = useRef<PaperStyle>(paperStyle)
-  const backgroundRef = useRef('#FFF9EF')
   const skipHistoryRef = useRef(false)
 
-  const selected = page?.elements.find((element) => element.id === selectedId)
+  const selected = page?.elements.find(
+    (element) => element.id === selectedId,
+  )
+
+  const activeCollection = stickerCollections.find(
+    (collection) => collection.id === stickerCollection,
+  )
+
+  const filteredStickers = scrapbookStickers.filter((sticker) => {
+    const query = stickerSearch.trim().toLowerCase()
+
+    const matchesSearch =
+      !query ||
+      sticker.name.toLowerCase().includes(query) ||
+      sticker.emoji.includes(query) ||
+      sticker.category.toLowerCase().includes(query)
+
+    const matchesCategory =
+      stickerCategory === 'All' ||
+      (stickerCategory === 'Favorites'
+        ? favoriteStickers.includes(sticker.id)
+        : sticker.category === stickerCategory)
+
+    const matchesCollection =
+      !activeCollection ||
+      activeCollection.categories.includes(sticker.category)
+
+    return matchesSearch && matchesCategory && matchesCollection
+  })
 
   useEffect(() => {
     pageRef.current = page
@@ -152,10 +340,6 @@ export default function Scrapbook() {
   useEffect(() => {
     paperRef.current = paperStyle
   }, [paperStyle])
-
-  useEffect(() => {
-    backgroundRef.current = page?.background ?? '#FFF9EF'
-  }, [page?.background])
 
   const makeSnapshot = useCallback((): EditorSnapshot | null => {
     const current = pageRef.current
@@ -202,8 +386,36 @@ export default function Scrapbook() {
     }
   }
 
+  // Load saved pages on mount without synchronously setting state in the effect.
   useEffect(() => {
-    void refreshPages()
+    let cancelled = false
+
+    async function loadSavedPages() {
+      try {
+        const saved = await db.scrapbookPages
+          .orderBy('updatedAt')
+          .reverse()
+          .toArray()
+
+        if (!cancelled) {
+          setPages(saved)
+        }
+      } catch (error) {
+        console.error('Could not load scrapbook pages:', error)
+
+        if (!cancelled) {
+          setMessage(
+            'Could not load saved pages. Please refresh and try again.',
+          )
+        }
+      }
+    }
+
+    void loadSavedPages()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -225,28 +437,52 @@ export default function Scrapbook() {
     setFuture([])
     historyRef.current = []
     futureRef.current = []
+    skipHistoryRef.current = false
   }
 
   function createPage() {
+    setMessage('')
+    setShowTemplatePicker(true)
+  }
+
+  function chooseTemplate(template: ScrapbookTemplate) {
     const now = new Date().toISOString()
 
+    const elements: ScrapbookElement[] = template.elements.map((item) => ({
+      id: crypto.randomUUID(),
+      type: item.type,
+      content: item.content,
+      x: item.x,
+      y: item.y,
+      width: item.width,
+      height: item.height,
+      color: item.color,
+      fontSize: item.fontSize,
+      rotation: item.rotation ?? 0,
+    }))
+
     const newPage: ScrapbookPage = {
-      title: 'My new scrapbook',
-      background: '#FFF9EF',
-      elements: [],
+      title: template.title,
+      background: template.background,
+      paperStyle: template.paperStyle,
+      elements,
       createdAt: now,
       updatedAt: now,
     }
 
     setPage(newPage)
     pageRef.current = newPage
+
     setPageTitle(newPage.title)
     titleRef.current = newPage.title
-    setPaperStyle('Plain')
-    paperRef.current = 'Plain'
+
+    setPaperStyle(template.paperStyle)
+    paperRef.current = template.paperStyle
+
     setSelectedId(null)
-    setMessage('')
+    setShowTemplatePicker(false)
     resetHistory()
+    setMessage(`${template.name} template is ready to make your own ✨`)
   }
 
   function openPage(savedPage: ScrapbookPage) {
@@ -255,18 +491,27 @@ export default function Scrapbook() {
       elements: cloneElements(savedPage.elements),
     }
 
+    const savedPaperStyle: PaperStyle = savedPage.paperStyle ?? 'Plain'
+
     setPage(openedPage)
     pageRef.current = openedPage
+
     setPageTitle(savedPage.title)
     titleRef.current = savedPage.title
-    setPaperStyle('Plain')
-    paperRef.current = 'Plain'
+
+    setPaperStyle(savedPaperStyle)
+    paperRef.current = savedPaperStyle
+
     setSelectedId(null)
     setMessage('')
+    setShowTemplatePicker(false)
     resetHistory()
   }
 
-  function updateElement(id: string, patch: Partial<ScrapbookElement>) {
+  function updateElement(
+    id: string,
+    patch: Partial<ScrapbookElement>,
+  ) {
     rememberChange()
 
     setPage((current) => {
@@ -303,11 +548,43 @@ export default function Scrapbook() {
   }
 
   function addText() {
-    addElement(makeElement('text', newText.trim() || 'Write your memory here'))
+    addElement(
+      makeElement('text', newText.trim() || 'Write your memory here'),
+    )
   }
 
   function addSticker(sticker: string) {
     addElement(makeElement('sticker', sticker))
+  }
+
+  function toggleStickerFavorite(id: string) {
+    const nextFavorites = favoriteStickers.includes(id)
+      ? favoriteStickers.filter((favoriteId) => favoriteId !== id)
+      : [...favoriteStickers, id]
+
+    setFavoriteStickers(nextFavorites)
+
+    try {
+      localStorage.setItem(
+        FAVORITES_KEY,
+        JSON.stringify(nextFavorites),
+      )
+      setMessage('')
+    } catch {
+      setMessage(
+        'Sticker favourites could not be saved in this browser.',
+      )
+    }
+  }
+
+  function selectCollection(id: StickerCollectionId | 'All') {
+    setStickerCollection(id)
+    setStickerCategory('All')
+  }
+
+  function selectCategory(category: StickerFilter) {
+    setStickerCategory(category)
+    setStickerCollection('All')
   }
 
   function uploadPhoto(event: ChangeEvent<HTMLInputElement>) {
@@ -335,47 +612,12 @@ export default function Scrapbook() {
       }
     }
 
-    reader.onerror = () => setMessage('Could not read that image. Try another one.')
+    reader.onerror = () => {
+      setMessage('Could not read that image. Try another one.')
+    }
+
     reader.readAsDataURL(file)
     event.target.value = ''
-  }
-
-  function undo() {
-    const currentSnapshot = makeSnapshot()
-    const previous = historyRef.current
-
-    if (!currentSnapshot || previous.length === 0) return
-
-    const snapshot = previous[previous.length - 1]
-    const remaining = previous.slice(0, -1)
-
-    futureRef.current = [...futureRef.current, currentSnapshot].slice(-MAX_HISTORY)
-    historyRef.current = remaining
-
-    setFuture(futureRef.current)
-    setHistory(remaining)
-
-    skipHistoryRef.current = true
-    applySnapshot(snapshot)
-  }
-
-  function redo() {
-    const currentSnapshot = makeSnapshot()
-    const next = futureRef.current
-
-    if (!currentSnapshot || next.length === 0) return
-
-    const snapshot = next[next.length - 1]
-    const remaining = next.slice(0, -1)
-
-    historyRef.current = [...historyRef.current, currentSnapshot].slice(-MAX_HISTORY)
-    futureRef.current = remaining
-
-    setHistory(historyRef.current)
-    setFuture(remaining)
-
-    skipHistoryRef.current = true
-    applySnapshot(snapshot)
   }
 
   function applySnapshot(snapshot: EditorSnapshot) {
@@ -394,9 +636,57 @@ export default function Scrapbook() {
 
     setPageTitle(snapshot.title)
     titleRef.current = snapshot.title
+
     setPaperStyle(snapshot.paperStyle)
     paperRef.current = snapshot.paperStyle
+
     setSelectedId(null)
+  }
+
+  function undo() {
+    const currentSnapshot = makeSnapshot()
+    const previous = historyRef.current
+
+    if (!currentSnapshot || previous.length === 0) return
+
+    const snapshot = previous[previous.length - 1]
+    const remaining = previous.slice(0, -1)
+
+    futureRef.current = [
+      ...futureRef.current,
+      currentSnapshot,
+    ].slice(-MAX_HISTORY)
+
+    historyRef.current = remaining
+
+    setFuture(futureRef.current)
+    setHistory(remaining)
+
+    skipHistoryRef.current = true
+    applySnapshot(snapshot)
+  }
+
+  function redo() {
+    const currentSnapshot = makeSnapshot()
+    const next = futureRef.current
+
+    if (!currentSnapshot || next.length === 0) return
+
+    const snapshot = next[next.length - 1]
+    const remaining = next.slice(0, -1)
+
+    historyRef.current = [
+      ...historyRef.current,
+      currentSnapshot,
+    ].slice(-MAX_HISTORY)
+
+    futureRef.current = remaining
+
+    setHistory(historyRef.current)
+    setFuture(remaining)
+
+    skipHistoryRef.current = true
+    applySnapshot(snapshot)
   }
 
   function removeSelected() {
@@ -406,7 +696,9 @@ export default function Scrapbook() {
 
     const updated = {
       ...page,
-      elements: page.elements.filter((element) => element.id !== selectedId),
+      elements: page.elements.filter(
+        (element) => element.id !== selectedId,
+      ),
     }
 
     setPage(updated)
@@ -428,23 +720,39 @@ export default function Scrapbook() {
   function moveSelectedLayer(direction: 'forward' | 'backward') {
     if (!page || !selectedId) return
 
-    const index = page.elements.findIndex((element) => element.id === selectedId)
+    const index = page.elements.findIndex(
+      (element) => element.id === selectedId,
+    )
+
     if (index < 0) return
 
-    const targetIndex = direction === 'forward' ? index + 1 : index - 1
-    if (targetIndex < 0 || targetIndex >= page.elements.length) return
+    const targetIndex =
+      direction === 'forward' ? index + 1 : index - 1
+
+    if (
+      targetIndex < 0 ||
+      targetIndex >= page.elements.length
+    ) {
+      return
+    }
 
     rememberChange()
 
     const elements = [...page.elements]
-    ;[elements[index], elements[targetIndex]] = [elements[targetIndex], elements[index]]
+    ;[elements[index], elements[targetIndex]] = [
+      elements[targetIndex],
+      elements[index],
+    ]
 
     const updated = { ...page, elements }
+
     setPage(updated)
     pageRef.current = updated
   }
 
   function changeBackground(value: string) {
+    if (!page || page.background === value) return
+
     rememberChange()
 
     setPage((current) => {
@@ -457,6 +765,8 @@ export default function Scrapbook() {
   }
 
   function changePaperStyle(value: PaperStyle) {
+    if (paperStyle === value) return
+
     rememberChange()
     setPaperStyle(value)
     paperRef.current = value
@@ -474,6 +784,7 @@ export default function Scrapbook() {
       const toSave: ScrapbookPage = {
         ...page,
         title: pageTitle.trim() || 'Untitled scrapbook',
+        paperStyle,
         updatedAt: now,
       }
 
@@ -486,6 +797,7 @@ export default function Scrapbook() {
 
       setPage(toSave)
       pageRef.current = toSave
+
       setPageTitle(toSave.title)
       titleRef.current = toSave.title
 
@@ -528,14 +840,15 @@ export default function Scrapbook() {
     setPage(null)
     pageRef.current = null
     setSelectedId(null)
+    setShowTemplatePicker(false)
     resetHistory()
     void refreshPages()
   }
 
-  function renderPaper() {
+  function renderPaper(): ReactNode {
     if (paperStyle === 'Plain') return null
 
-    const lines: React.ReactNode[] = []
+    const lines: ReactNode[] = []
 
     if (paperStyle === 'Lined') {
       for (let y = 28; y < HEIGHT; y += 28) {
@@ -602,11 +915,23 @@ export default function Scrapbook() {
     return <>{lines}</>
   }
 
+  const buttonStyle: React.CSSProperties = {
+    border: '1px solid #ead4dc',
+    borderRadius: 14,
+    background: '#fffafc',
+    padding: '10px 14px',
+    cursor: 'pointer',
+    color: '#765363',
+    font: 'inherit',
+  }
+
   return (
     <section className="scrapbook">
       <header className="scrapbook-heading">
         <div>
-          <p className="scrapbook-eyebrow">YOUR LITTLE CREATIVE CORNER 🌷</p>
+          <p className="scrapbook-eyebrow">
+            YOUR LITTLE CREATIVE CORNER 🌷
+          </p>
           <h1>Scrapbook Studio</h1>
           <p>Collect the little moments that make life lovely.</p>
         </div>
@@ -616,19 +941,193 @@ export default function Scrapbook() {
         </button>
       </header>
 
-      {!page ? (
+      {showTemplatePicker ? (
+        <div className="scrapbook-library">
+          <div className="scrapbook-library-intro">
+            <span className="scrapbook-flower">✿</span>
+            <h2>Choose your little world</h2>
+            <p>
+              Pick a starting design. Every detail can be changed later.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 20,
+              marginTop: 24,
+            }}
+          >
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => chooseTemplate(template)}
+                style={{
+                  ...buttonStyle,
+                  padding: 12,
+                  textAlign: 'left',
+                  border: '1px solid #ead4dc',
+                  boxShadow: '0 5px 18px rgba(105, 68, 85, 0.07)',
+                  transition:
+                    'transform 160ms ease, box-shadow 160ms ease',
+                }}
+              >
+                <div
+                  style={{
+                    height: 160,
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    background: template.background,
+                    border: '1px solid rgba(120, 80, 100, 0.12)',
+                    marginBottom: 12,
+                  }}
+                >
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '8%',
+                      top: '12%',
+                      fontSize: 28,
+                    }}
+                  >
+                    {template.emoji}
+                  </span>
+
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '20%',
+                      top: '18%',
+                      right: '8%',
+                      color: template.accent,
+                      fontFamily: 'Georgia, serif',
+                      fontSize: 20,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {template.title}
+                  </span>
+
+                  {template.elements.slice(1, 5).map((element, index) => (
+                    <span
+                      key={`${template.id}-${index}`}
+                      style={{
+                        position: 'absolute',
+                        left: `${Math.min(85, Math.max(5, (element.x / WIDTH) * 100))}%`,
+                        top: `${Math.min(82, Math.max(5, (element.y / HEIGHT) * 100))}%`,
+                        fontSize: element.type === 'sticker' ? 24 : 12,
+                        color: element.color,
+                        maxWidth: '75%',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {element.content}
+                    </span>
+                  ))}
+
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 10,
+                      fontSize: 11,
+                      color: template.accent,
+                      opacity: 0.8,
+                    }}
+                  >
+                    MY LITTLE WORLD ✿
+                  </span>
+                </div>
+
+                <strong style={{ display: 'block', marginBottom: 5 }}>
+                  {template.emoji} {template.name}
+                </strong>
+
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    opacity: 0.8,
+                  }}
+                >
+                  {template.description}
+                </span>
+
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 12,
+                    padding: '9px 10px',
+                    borderRadius: 9,
+                    background: template.background,
+                    color: template.accent,
+                    textAlign: 'center',
+                    fontWeight: 600,
+                  }}
+                >
+                  Use this template →
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 22 }}>
+            <button
+              className="scrapbook-secondary"
+              onClick={() => {
+                if (page) {
+                  setShowTemplatePicker(false)
+                } else {
+                  goToLibrary()
+                }
+              }}
+            >
+              ← {page ? 'Back to current page' : 'Back to saved pages'}
+            </button>
+
+            <button
+              className="scrapbook-secondary"
+              style={{ marginLeft: 10 }}
+              onClick={() =>
+                chooseTemplate({
+                  id: 'blank',
+                  name: 'Blank page',
+                  emoji: '📄',
+                  description: 'Start with an empty page',
+                  background: '#FFF9EF',
+                  paperStyle: 'Plain',
+                  title: 'My lovely memories',
+                  accent: '#72515C',
+                  elements: [],
+                })
+              }
+            >
+              Start with a blank page
+            </button>
+          </div>
+        </div>
+      ) : !page ? (
         <div className="scrapbook-library">
           <div className="scrapbook-library-intro">
             <span className="scrapbook-flower">✿</span>
             <h2>Your memory pages</h2>
             <p>Your saved creations will live here.</p>
+            <button className="scrapbook-primary" onClick={createPage}>
+              Choose a template
+            </button>
           </div>
 
           {pages.length === 0 ? (
             <div className="scrapbook-empty">
               <span>📔</span>
               <h3>Your first page is waiting</h3>
-              <p>Add photos, little notes and stickers to make it yours.</p>
+              <p>
+                Add photos, little notes and stickers to make it yours.
+              </p>
               <button className="scrapbook-primary" onClick={createPage}>
                 Create my first page
               </button>
@@ -636,7 +1135,10 @@ export default function Scrapbook() {
           ) : (
             <div className="scrapbook-page-grid">
               {pages.map((savedPage) => (
-                <article className="scrapbook-page-card" key={savedPage.id}>
+                <article
+                  className="scrapbook-page-card"
+                  key={savedPage.id}
+                >
                   <button
                     className="scrapbook-page-preview"
                     style={{ background: savedPage.background }}
@@ -665,10 +1167,16 @@ export default function Scrapbook() {
                     >
                       {savedPage.title}
                     </button>
-                    <span>{savedPage.elements.length} elements</span>
+
+                    <span>
+                      {savedPage.elements.length} elements
+                    </span>
+
                     <button
                       className="scrapbook-delete"
-                      onClick={() => savedPage.id && void deletePage(savedPage.id)}
+                      onClick={() =>
+                        savedPage.id && void deletePage(savedPage.id)
+                      }
                       aria-label={`Delete ${savedPage.title}`}
                     >
                       Delete
@@ -682,7 +1190,10 @@ export default function Scrapbook() {
       ) : (
         <div className="scrapbook-workspace">
           <div className="scrapbook-toolbar">
-            <button className="scrapbook-secondary" onClick={goToLibrary}>
+            <button
+              className="scrapbook-secondary"
+              onClick={goToLibrary}
+            >
               ← All pages
             </button>
 
@@ -702,7 +1213,6 @@ export default function Scrapbook() {
               className="scrapbook-secondary"
               onClick={undo}
               disabled={history.length === 0}
-              title="Undo"
             >
               ↶ Undo
             </button>
@@ -711,7 +1221,6 @@ export default function Scrapbook() {
               className="scrapbook-secondary"
               onClick={redo}
               disabled={future.length === 0}
-              title="Redo"
             >
               ↷ Redo
             </button>
@@ -730,6 +1239,15 @@ export default function Scrapbook() {
               <h3>Make it yours</h3>
 
               <div className="scrapbook-tool-group">
+                <button
+                  className="scrapbook-secondary full-width"
+                  onClick={createPage}
+                >
+                  ✨ Change template
+                </button>
+              </div>
+
+              <div className="scrapbook-tool-group">
                 <label htmlFor="scrapbook-text">Add a little note</label>
                 <textarea
                   id="scrapbook-text"
@@ -737,7 +1255,10 @@ export default function Scrapbook() {
                   onChange={(event) => setNewText(event.target.value)}
                   rows={3}
                 />
-                <button className="scrapbook-secondary full-width" onClick={addText}>
+                <button
+                  className="scrapbook-secondary full-width"
+                  onClick={addText}
+                >
                   + Add text
                 </button>
               </div>
@@ -753,19 +1274,142 @@ export default function Scrapbook() {
                 <small>Images up to 5 MB each</small>
               </div>
 
-              <div className="scrapbook-tool-group">
-                <label>Choose stickers</label>
-                <div className="scrapbook-stickers">
-                  {stickers.map((sticker) => (
-                    <button
-                      key={sticker}
-                      onClick={() => addSticker(sticker)}
-                      title={`Add ${sticker}`}
-                    >
-                      {sticker}
-                    </button>
-                  ))}
+              <div className="scrapbook-tool-group scrapbook-sticker-library">
+                <div className="scrapbook-sticker-heading">
+                  <div>
+                    <label>Sticker library ✿</label>
+                    <p>Little details, lots of personality.</p>
+                  </div>
+                  <span className="scrapbook-sticker-count">
+                    {filteredStickers.length}
+                  </span>
                 </div>
+
+                <input
+                  className="scrapbook-sticker-search"
+                  type="search"
+                  placeholder="Search stickers..."
+                  aria-label="Search stickers"
+                  value={stickerSearch}
+                  onChange={(event) =>
+                    setStickerSearch(event.target.value)
+                  }
+                />
+
+                <div className="scrapbook-collection-section">
+                  <div className="scrapbook-collection-heading">
+                    <strong>Explore collections</strong>
+                    <span>Curated little moods ✨</span>
+                  </div>
+
+                  <div className="scrapbook-collections">
+                    <button
+                      type="button"
+                      className={stickerCollection === 'All' ? 'active' : ''}
+                      aria-pressed={stickerCollection === 'All'}
+                      onClick={() => selectCollection('All')}
+                    >
+                      <span>✿</span>
+                      <small>Everything</small>
+                    </button>
+
+                    {stickerCollections.map((collection) => (
+                      <button
+                        type="button"
+                        key={collection.id}
+                        className={
+                          stickerCollection === collection.id
+                            ? 'active'
+                            : ''
+                        }
+                        aria-pressed={
+                          stickerCollection === collection.id
+                        }
+                        title={collection.description}
+                        onClick={() => selectCollection(collection.id)}
+                      >
+                        <span>{collection.emoji}</span>
+                        <small>{collection.name}</small>
+                        <small>{collection.description}</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="scrapbook-sticker-categories">
+                  {(['All', 'Favorites', ...stickerCategories] as StickerFilter[]).map(
+                    (category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        className={
+                          stickerCategory === category ? 'active' : ''
+                        }
+                        aria-pressed={stickerCategory === category}
+                        onClick={() => selectCategory(category)}
+                      >
+                        {category === 'Favorites'
+                          ? '♥ Favorites'
+                          : category}
+                      </button>
+                    ),
+                  )}
+                </div>
+
+                <div className="scrapbook-stickers scrapbook-sticker-grid">
+                  {filteredStickers.map((sticker) => {
+                    const isFavorite = favoriteStickers.includes(
+                      sticker.id,
+                    )
+
+                    return (
+                      <div
+                        className="scrapbook-sticker-card"
+                        key={sticker.id}
+                      >
+                        <button
+                          type="button"
+                          className="scrapbook-sticker-add"
+                          onClick={() => addSticker(sticker.emoji)}
+                          title={`Add ${sticker.name} to your page`}
+                          aria-label={`Add ${sticker.name}`}
+                        >
+                          <span>{sticker.emoji}</span>
+                          <small>{sticker.name}</small>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`scrapbook-sticker-favorite ${isFavorite ? 'is-favorite' : ''}`}
+                          onClick={() =>
+                            toggleStickerFavorite(sticker.id)
+                          }
+                          title={
+                            isFavorite
+                              ? 'Remove from favourites'
+                              : 'Add to favourites'
+                          }
+                          aria-label={
+                            isFavorite
+                              ? `Remove ${sticker.name} from favourites`
+                              : `Add ${sticker.name} to favourites`
+                          }
+                        >
+                          {isFavorite ? '♥' : '♡'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {filteredStickers.length === 0 && (
+                  <p className="scrapbook-sticker-empty">
+                    {stickerCategory === 'Favorites' &&
+                    favoriteStickers.length === 0
+                      ? 'Your favourite stickers will appear here. Tap a heart to save one. 💗'
+                      : 'No stickers found. Try another search, category or collection 🌷'}
+                  </p>
+                )}
               </div>
 
               <div className="scrapbook-tool-group">
@@ -776,9 +1420,15 @@ export default function Scrapbook() {
                       key={background.value}
                       title={background.name}
                       aria-label={background.name}
-                      className={page.background === background.value ? 'active' : ''}
+                      className={
+                        page.background === background.value
+                          ? 'active'
+                          : ''
+                      }
                       style={{ background: background.value }}
-                      onClick={() => changeBackground(background.value)}
+                      onClick={() =>
+                        changeBackground(background.value)
+                      }
                     />
                   ))}
                 </div>
@@ -789,7 +1439,11 @@ export default function Scrapbook() {
                 <select
                   id="paper-style"
                   value={paperStyle}
-                  onChange={(event) => changePaperStyle(event.target.value as PaperStyle)}
+                  onChange={(event) =>
+                    changePaperStyle(
+                      event.target.value as PaperStyle,
+                    )
+                  }
                 >
                   {paperStyles.map((style) => (
                     <option key={style} value={style}>
@@ -797,7 +1451,9 @@ export default function Scrapbook() {
                     </option>
                   ))}
                 </select>
-                <small>Choose plain, lined, dotted or grid paper.</small>
+                <small>
+                  Choose plain, lined, dotted or grid paper.
+                </small>
               </div>
 
               {selected && (
@@ -806,22 +1462,30 @@ export default function Scrapbook() {
 
                   {selected.type !== 'image' && (
                     <>
-                      <label htmlFor="selected-content">Text or sticker</label>
+                      <label htmlFor="selected-content">
+                        Text or sticker
+                      </label>
                       <input
                         id="selected-content"
                         value={selected.content}
                         onChange={(event) =>
-                          updateElement(selected.id, { content: event.target.value })
+                          updateElement(selected.id, {
+                            content: event.target.value,
+                          })
                         }
                       />
 
-                      <label htmlFor="selected-color">Text colour</label>
+                      <label htmlFor="selected-color">
+                        Text colour
+                      </label>
                       <input
                         id="selected-color"
                         type="color"
                         value={selected.color}
                         onChange={(event) =>
-                          updateElement(selected.id, { color: event.target.value })
+                          updateElement(selected.id, {
+                            color: event.target.value,
+                          })
                         }
                       />
                     </>
@@ -880,7 +1544,10 @@ export default function Scrapbook() {
                   />
 
                   <div className="scrapbook-element-actions">
-                    <button className="scrapbook-secondary full-width" onClick={duplicateSelected}>
+                    <button
+                      className="scrapbook-secondary full-width"
+                      onClick={duplicateSelected}
+                    >
                       Duplicate
                     </button>
                     <button
@@ -895,7 +1562,10 @@ export default function Scrapbook() {
                     >
                       Send backward ↓
                     </button>
-                    <button className="scrapbook-danger full-width" onClick={removeSelected}>
+                    <button
+                      className="scrapbook-danger full-width"
+                      onClick={removeSelected}
+                    >
                       Remove element
                     </button>
                   </div>
@@ -903,8 +1573,8 @@ export default function Scrapbook() {
               )}
 
               <p className="scrapbook-tip">
-                Tip: drag an item to move it. Select it to reveal canvas handles.
-                Remember to save your page.
+                Tip: drag an item to move it. Select it to reveal canvas
+                handles. Remember to save your page.
               </p>
             </aside>
 
@@ -943,8 +1613,10 @@ export default function Scrapbook() {
 
                     {page.elements.map((element) => {
                       const select = () => setSelectedId(element.id)
-                      const update = (patch: Partial<ScrapbookElement>) =>
-                        updateElement(element.id, patch)
+
+                      const update = (
+                        patch: Partial<ScrapbookElement>,
+                      ) => updateElement(element.id, patch)
 
                       if (element.type === 'image') {
                         return (
@@ -971,7 +1643,11 @@ export default function Scrapbook() {
                           rotation={element.rotation}
                           draggable
                           wrap="word"
-                          fontFamily={element.type === 'sticker' ? 'Arial' : 'Georgia'}
+                          fontFamily={
+                            element.type === 'sticker'
+                              ? 'Arial'
+                              : 'Georgia'
+                          }
                           onClick={select}
                           onTap={select}
                           onDragStart={select}
@@ -992,8 +1668,14 @@ export default function Scrapbook() {
                             update({
                               x: node.x(),
                               y: node.y(),
-                              width: Math.max(40, node.width() * scaleX),
-                              height: Math.max(30, node.height() * scaleY),
+                              width: Math.max(
+                                40,
+                                node.width() * scaleX,
+                              ),
+                              height: Math.max(
+                                30,
+                                node.height() * scaleY,
+                              ),
                               rotation: node.rotation(),
                             })
                           }}
@@ -1011,20 +1693,19 @@ export default function Scrapbook() {
                       borderStroke="#C985A0"
                       anchorStroke="#C985A0"
                       anchorFill="#FFF9FC"
-                      boundBoxFunc={(oldBox, newBox) => {
-                        if (newBox.width < 30 || newBox.height < 25) {
-                          return oldBox
-                        }
-                        return newBox
-                      }}
+                      boundBoxFunc={(oldBox, newBox) =>
+                        newBox.width < 30 || newBox.height < 25
+                          ? oldBox
+                          : newBox
+                      }
                     />
                   </Layer>
                 </Stage>
               </div>
 
               <p className="scrapbook-canvas-help">
-                Select an item to reveal its handles. Drag the corner handles to
-                resize and use the rotation handle to turn it.
+                Select an item to reveal its handles. Drag the corner
+                handles to resize and use the rotation handle to turn it.
               </p>
             </div>
           </div>

@@ -41,10 +41,13 @@ export interface ScrapbookElement {
   fontSize: number
 }
 
+export type ScrapbookPaperStyle = 'Plain' | 'Lined' | 'Dotted' | 'Grid'
+
 export interface ScrapbookPage {
   id?: number
   title: string
   background: string
+  paperStyle?: ScrapbookPaperStyle
   elements: ScrapbookElement[]
   createdAt: string
   updatedAt: string
@@ -72,6 +75,21 @@ class MyLittleWorldDatabase extends Dexie {
       moods: '++id, dateKey, mood',
       scrapbookPages: '++id, title, createdAt, updatedAt',
     })
+
+    this.version(4)
+      .stores({
+        entries: '++id, title, createdAt, updatedAt',
+        moods: '++id, dateKey, mood',
+        scrapbookPages: '++id, title, createdAt, updatedAt',
+      })
+      .upgrade(async (transaction) => {
+        await transaction
+          .table('scrapbookPages')
+          .toCollection()
+          .modify((page: ScrapbookPage) => {
+            page.paperStyle ??= 'Plain'
+          })
+      })
   }
 }
 

@@ -1,9 +1,10 @@
 
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { db, type JournalEntry } from './db'
-import MoodCalendar from './MoodCalendar'
-import Scrapbook from './Scrapbook'
 import './App.css'
+
+const MoodCalendar = lazy(() => import('./MoodCalendar'))
+const Scrapbook = lazy(() => import('./Scrapbook'))
 
 const navigation = [
   { name: 'Home', icon: '⌂' },
@@ -34,21 +35,62 @@ function App() {
   const [saveError, setSaveError] = useState('')
   const [loading, setLoading] = useState(true)
 
+  // Load journal entries when the app first opens.
+  // The cancellation guard prevents state updates after unmounting.
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadInitialEntries() {
+      try {
+        const savedEntries = await db.entries
+          .orderBy('createdAt')
+          .reverse()
+          .toArray()
+
+        if (!cancelled) {
+          setEntries(savedEntries)
+        }
+      } catch (error) {
+        console.error('Could not load journal entries:', error)
+
+        if (!cancelled) {
+          setSaveError(
+            'Could not load your journals. Please refresh the page.',
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadInitialEntries()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Refresh the journal list after saving or deleting an entry.
   async function loadEntries() {
     try {
-      const savedEntries = await db.entries.orderBy('createdAt').reverse().toArray()
+      const savedEntries = await db.entries
+        .orderBy('createdAt')
+        .reverse()
+        .toArray()
+
       setEntries(savedEntries)
+      setSaveError('')
     } catch (error) {
       console.error('Could not load journal entries:', error)
-      setSaveError('Could not load your journals. Please refresh the page.')
+      setSaveError(
+        'Could not load your journals. Please refresh the page.',
+      )
     } finally {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    void loadEntries()
-  }, [])
 
   function startNewEntry() {
     setSelectedEntry(null)
@@ -141,7 +183,11 @@ function App() {
 
   function renderJournalList() {
     if (loading) {
-      return <p className="empty-state">Opening your little memories… 🌷</p>
+      return (
+        <p className="empty-state">
+          Opening your little memories… 🌷
+        </p>
+      )
     }
 
     if (filteredEntries.length === 0) {
@@ -173,21 +219,23 @@ function App() {
             >
               <h3>{entry.title || 'Untitled memory'}</h3>
               <p>{entry.text}</p>
-              <span className="entry-date">{formatDate(entry.createdAt)}</span>
+              <span className="entry-date">
+                {formatDate(entry.createdAt)}
+              </span>
             </button>
 
             <div className="entry-actions">
               <button
                 className="edit-entry"
                 onClick={() => openEntry(entry)}
-                aria-label={`Edit ${entry.title}`}
+                aria-label={`Edit ${entry.title || 'journal entry'}`}
               >
                 Edit
               </button>
               <button
                 className="delete-entry"
                 onClick={() => void deleteEntry(entry)}
-                aria-label={`Delete ${entry.title}`}
+                aria-label={`Delete ${entry.title || 'journal entry'}`}
               >
                 Delete
               </button>
@@ -238,7 +286,7 @@ function App() {
               onClick={() => setActiveSection('Mood & Calendar')}
             >
               <span className="feature-icon">🌷</span>
-              <h3>Mood & Calendar</h3>
+              <h3>Mood &amp; Calendar</h3>
               <p>Check in with how you're feeling.</p>
             </button>
 
@@ -265,7 +313,7 @@ function App() {
               onClick={() => setActiveSection('Faith & Prayer')}
             >
               <span className="feature-icon">🕊️</span>
-              <h3>Faith & Prayer</h3>
+              <h3>Faith &amp; Prayer</h3>
               <p>A quiet space for hope and gratitude.</p>
             </button>
 
@@ -295,7 +343,9 @@ function App() {
             </button>
           </div>
 
-          {entries.length === 0 ? (
+          {loading ? (
+            <p className="empty-state">Opening your little memories… 🌷</p>
+          ) : entries.length === 0 ? (
             <div className="soft-empty-card">
               Your first memory is waiting to be written. 💗
               <button className="text-button" onClick={startNewEntry}>
@@ -334,9 +384,13 @@ function App() {
 
         <div className="editor-heading">
           <p className="eyebrow">
-            {selectedEntry ? 'A MEMORY ALREADY WRITTEN' : 'A FRESH LITTLE PAGE'}
+            {selectedEntry
+              ? 'A MEMORY ALREADY WRITTEN'
+              : 'A FRESH LITTLE PAGE'}
           </p>
-          <h1>{selectedEntry ? 'Edit your journal' : 'Write your heart out'} 💗</h1>
+          <h1>
+            {selectedEntry ? 'Edit your journal' : 'Write your heart out'} 💗
+          </h1>
           <p>There are no perfect words here. Just yours.</p>
         </div>
 
@@ -364,10 +418,17 @@ function App() {
           rows={12}
         />
 
-        {saveError && <p className="save-error">{saveError}</p>}
+        {saveError && (
+          <p className="save-error" role="alert">
+            {saveError}
+          </p>
+        )}
 
         <div className="editor-actions">
-          <button className="primary-button" onClick={() => void saveEntry()}>
+          <button
+            className="primary-button"
+            onClick={() => void saveEntry()}
+          >
             Save this memory ♡
           </button>
           <button className="secondary-button" onClick={closeEditor}>
@@ -379,21 +440,27 @@ function App() {
   }
 
   function renderPlaceholder(section: string) {
-    const content: Record<string, { icon: string; title: string; description: string }> = {
+    const content: Record<
+      string,
+      { icon: string; title: string; description: string }
+    > = {
       Growth: {
         icon: '🌱',
         title: 'Something lovely is growing',
-        description: 'Your goals, habits, and little wins will have a home here soon.',
+        description:
+          'Your goals, habits, and little wins will have a home here soon.',
       },
       'Faith & Prayer': {
         icon: '🕊️',
         title: 'A little space for faith',
-        description: 'Prayer notes, favourite verses, and moments of gratitude are coming.',
+        description:
+          'Prayer notes, favourite verses, and moments of gratitude are coming.',
       },
       Memories: {
         icon: '💗',
         title: 'Keep the moments close',
-        description: 'A special place for the little things you never want to forget.',
+        description:
+          'A special place for the little things you never want to forget.',
       },
     }
 
@@ -409,7 +476,10 @@ function App() {
         <p className="eyebrow">A LITTLE SOMETHING IS BLOOMING</p>
         <h1>{item.title}</h1>
         <p>{item.description}</p>
-        <button className="primary-button" onClick={() => setActiveSection('Home')}>
+        <button
+          className="primary-button"
+          onClick={() => setActiveSection('Home')}
+        >
           Back to my little world
         </button>
       </section>
@@ -439,7 +509,10 @@ function App() {
           {navigation.map((item) => (
             <button
               key={item.name}
-              className={`nav-item ${activeSection === item.name ? 'active' : ''}`}
+              className={`nav-item ${
+                activeSection === item.name ? 'active' : ''
+              }`}
+              aria-current={activeSection === item.name ? 'page' : undefined}
               onClick={() => {
                 setActiveSection(item.name)
                 closeEditor()
@@ -495,13 +568,30 @@ function App() {
               />
             </div>
 
-            {saveError && <p className="save-error">{saveError}</p>}
+            {saveError && (
+              <p className="save-error" role="alert">
+                {saveError}
+              </p>
+            )}
+
             {renderJournalList()}
           </section>
         ) : activeSection === 'Mood & Calendar' ? (
-          <MoodCalendar />
+          <Suspense
+            fallback={
+              <p className="empty-state">Opening your little calendar… 🌷</p>
+            }
+          >
+            <MoodCalendar />
+          </Suspense>
         ) : activeSection === 'Scrapbook' ? (
-          <Scrapbook />
+          <Suspense
+            fallback={
+              <p className="empty-state">Preparing your scrapbook… 🎀</p>
+            }
+          >
+            <Scrapbook />
+          </Suspense>
         ) : (
           renderPlaceholder(activeSection)
         )}
