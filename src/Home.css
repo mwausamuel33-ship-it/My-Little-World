@@ -275,3 +275,16 @@
 }
 .coming-soon p:not(.eyebrow) { font-size: 13px; line-height: 1.7; }
 .coming-soon .primary-button { margin-top: 14px; }
+
+/* ---- Secondary buttons: match the primary button's size ---- */
+.editor-actions .secondary-button,
+.backup-actions .secondary-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 39px;
+  padding: 0 16px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
