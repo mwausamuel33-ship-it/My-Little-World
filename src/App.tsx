@@ -2,7 +2,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { db, type JournalEntry } from './db'
 import BackupPanel from './BackupPanel'
+import SectionErrorBoundary from './SectionErrorBoundary'
 import './App.css'
+import './Home.css'
 
 const MoodCalendar = lazy(() => import('./MoodCalendar'))
 const Scrapbook = lazy(() => import('./Scrapbook'))
@@ -35,6 +37,27 @@ function App() {
   const [search, setSearch] = useState('')
   const [saveError, setSaveError] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // True while the editor is open and differs from what was last saved.
+  const hasUnsavedChanges =
+    isCreating &&
+    (title !== (selectedEntry?.title ?? '') ||
+      text !== (selectedEntry?.text ?? ''))
+
+  // Ask the browser to confirm before the tab is closed or reloaded.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+
+    function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault()
+    }
+
+    window.addEventListener('beforeunload', warnBeforeLeaving)
+
+    return () => {
+      window.removeEventListener('beforeunload', warnBeforeLeaving)
+    }
+  }, [hasUnsavedChanges])
 
   // Load journal entries when the app first opens.
   // The cancellation guard prevents state updates after unmounting.
@@ -91,6 +114,15 @@ function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Returns true when it is fine to leave the editor.
+  function confirmDiscard() {
+    if (!hasUnsavedChanges) return true
+
+    return window.confirm(
+      'You have unsaved changes. Leave without saving them?',
+    )
   }
 
   function startNewEntry() {
@@ -381,7 +413,12 @@ function App() {
   function renderJournalEditor() {
     return (
       <section className="journal-editor">
-        <button className="back-button" onClick={closeEditor}>
+        <button
+          className="back-button"
+          onClick={() => {
+            if (confirmDiscard()) closeEditor()
+          }}
+        >
           ← Back to journals
         </button>
 
@@ -434,7 +471,12 @@ function App() {
           >
             Save this memory ♡
           </button>
-          <button className="secondary-button" onClick={closeEditor}>
+          <button
+            className="secondary-button"
+            onClick={() => {
+              if (confirmDiscard()) closeEditor()
+            }}
+          >
             Cancel
           </button>
         </div>
@@ -495,6 +537,7 @@ function App() {
         <button
           className="brand"
           onClick={() => {
+            if (!confirmDiscard()) return
             setActiveSection('Home')
             closeEditor()
           }}
@@ -517,6 +560,7 @@ function App() {
               }`}
               aria-current={activeSection === item.name ? 'page' : undefined}
               onClick={() => {
+                if (!confirmDiscard()) return
                 setActiveSection(item.name)
                 closeEditor()
               }}
@@ -580,21 +624,25 @@ function App() {
             {renderJournalList()}
           </section>
         ) : activeSection === 'Mood & Calendar' ? (
-          <Suspense
-            fallback={
-              <p className="empty-state">Opening your little calendar… 🌷</p>
-            }
-          >
-            <MoodCalendar />
-          </Suspense>
+          <SectionErrorBoundary key="mood">
+            <Suspense
+              fallback={
+                <p className="empty-state">Opening your little calendar… 🌷</p>
+              }
+            >
+              <MoodCalendar />
+            </Suspense>
+          </SectionErrorBoundary>
         ) : activeSection === 'Scrapbook' ? (
-          <Suspense
-            fallback={
-              <p className="empty-state">Preparing your scrapbook… 🎀</p>
-            }
-          >
-            <Scrapbook />
-          </Suspense>
+          <SectionErrorBoundary key="scrapbook">
+            <Suspense
+              fallback={
+                <p className="empty-state">Preparing your scrapbook… 🎀</p>
+              }
+            >
+              <Scrapbook />
+            </Suspense>
+          </SectionErrorBoundary>
         ) : (
           renderPlaceholder(activeSection)
         )}
