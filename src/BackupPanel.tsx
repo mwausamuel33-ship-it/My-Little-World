@@ -3,6 +3,8 @@ import {
   BackupError,
   downloadBackup,
   importBackup,
+  readBackupStatus,
+  type BackupStatus,
   type ImportSummary,
 } from './backup'
 import './BackupPanel.css'
@@ -51,10 +53,44 @@ function describeImport(summary: ImportSummary) {
   return text
 }
 
+const OVERDUE_AFTER_DAYS = 14
+
+function describeBackupStatus(info: BackupStatus) {
+  if (info.lastBackupAt === null || info.daysAgo === null) {
+    return {
+      text: 'No backup has been saved from this device yet. It only takes a few seconds.',
+      overdue: true,
+    }
+  }
+
+  const date = new Date(info.lastBackupAt).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
+  if (info.daysAgo === 0) {
+    return { text: `Last backup file made today (${date}).`, overdue: false }
+  }
+
+  const ago = plural(info.daysAgo, 'day', 'days')
+
+  if (info.daysAgo >= OVERDUE_AFTER_DAYS) {
+    return {
+      text: `Last backup file made on ${date}, ${ago} ago. It might be time for a fresh one.`,
+      overdue: true,
+    }
+  }
+
+  return { text: `Last backup file made on ${date} (${ago} ago).`, overdue: false }
+}
+
 export default function BackupPanel({ onRestored }: BackupPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  const [backupInfo, setBackupInfo] = useState(readBackupStatus)
+  const lastBackup = describeBackupStatus(backupInfo)
 
   async function handleExport() {
     setBusy(true)
@@ -62,6 +98,7 @@ export default function BackupPanel({ onRestored }: BackupPanelProps) {
 
     try {
       const counts = await downloadBackup()
+      setBackupInfo(readBackupStatus())
       setStatus({
         kind: 'success',
         text: `Backup file created with ${plural(counts.entries, 'journal', 'journals')}, ${plural(counts.moods, 'mood record', 'mood records')} and ${plural(counts.scrapbookPages, 'scrapbook page', 'scrapbook pages')}. Check your downloads folder and keep it somewhere safe.`,
@@ -154,6 +191,12 @@ export default function BackupPanel({ onRestored }: BackupPanelProps) {
       <p className="backup-hint">
         Restoring adds to what you already have. It never deletes or replaces
         your existing journals, moods or scrapbook pages.
+      </p>
+
+      <p
+        className={`backup-last${lastBackup.overdue ? ' backup-last-overdue' : ''}`}
+      >
+        {lastBackup.text}
       </p>
 
       {busy && (

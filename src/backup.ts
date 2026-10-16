@@ -14,6 +14,7 @@ import {
 // scrapbook chunk back into the initial bundle.
 const FAVORITES_KEY = 'my-little-world-sticker-favorites'
 
+const LAST_BACKUP_KEY = 'my-little-world-last-backup'
 const BACKUP_FORMAT = 'my-little-world-backup'
 const BACKUP_VERSION = 1
 const MAX_BACKUP_BYTES = 150 * 1024 * 1024
@@ -287,6 +288,33 @@ function keepNew<T>(
   return { fresh, skipped: incoming.length - fresh.length }
 }
 
+export interface BackupStatus {
+  lastBackupAt: string | null
+  daysAgo: number | null
+}
+
+// When a backup file was last created on this device, if ever. This is only a
+// reminder: the browser cannot tell whether the file was actually kept.
+export function readBackupStatus(): BackupStatus {
+  let lastBackupAt: string | null = null
+
+  try {
+    lastBackupAt = localStorage.getItem(LAST_BACKUP_KEY)
+  } catch (error) {
+    console.warn('Could not read the last backup date:', error)
+  }
+
+  const time = lastBackupAt === null ? Number.NaN : Date.parse(lastBackupAt)
+
+  if (Number.isNaN(time)) {
+    return { lastBackupAt: null, daysAgo: null }
+  }
+
+  const daysAgo = Math.max(0, Math.floor((Date.now() - time) / 86_400_000))
+
+  return { lastBackupAt, daysAgo }
+}
+
 export async function createBackup(): Promise<BackupFile> {
   const [entries, moods, scrapbookPages] = await db.transaction(
     'r',
@@ -328,6 +356,12 @@ export async function downloadBackup(): Promise<RecordCounts> {
   link.click()
   link.remove()
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
+
+  try {
+    localStorage.setItem(LAST_BACKUP_KEY, backup.exportedAt)
+  } catch (error) {
+    console.warn('Could not remember the last backup date:', error)
+  }
 
   return {
     entries: backup.entries.length,

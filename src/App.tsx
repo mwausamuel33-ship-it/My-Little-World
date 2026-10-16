@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { db, type JournalEntry } from './db'
 import BackupPanel from './BackupPanel'
 import SectionErrorBoundary from './SectionErrorBoundary'
+import UpdateNotice from './UpdateNotice'
 import './App.css'
 import './Home.css'
 
@@ -533,6 +534,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <UpdateNotice />
       <aside className="sidebar">
         <button
           className="brand"
