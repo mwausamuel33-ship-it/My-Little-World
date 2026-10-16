@@ -58,6 +58,82 @@ interface EditorSnapshot {
   elements: ScrapbookElement[]
 }
 
+// Photos taken on a phone are often several megabytes. Shrinking them when
+// they are added keeps saved pages, backups and (later) syncing small.
+const MAX_PHOTO_SIDE = 1600
+const PHOTO_QUALITY = 0.85
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+      } else {
+        reject(new Error('The image could not be read.'))
+      }
+    }
+
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('The image could not be read.'))
+    }
+
+    reader.readAsDataURL(file)
+  })
+}
+
+function loadImageElement(source: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = document.createElement('img')
+
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('The image could not be opened.'))
+    image.src = source
+  })
+}
+
+// Returns the photo as a data URL, shrunk when it is larger than
+// MAX_PHOTO_SIDE. Small photos, GIFs and SVGs are kept exactly as they are,
+// and the shrunk version is only used when it is really smaller.
+async function preparePhoto(file: File): Promise<string> {
+  const original = await readFileAsDataUrl(file)
+
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+    return original
+  }
+
+  const image = await loadImageElement(original)
+  const longestSide = Math.max(image.naturalWidth, image.naturalHeight)
+
+  if (longestSide <= MAX_PHOTO_SIDE) return original
+
+  const scale = MAX_PHOTO_SIDE / longestSide
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(image.naturalWidth * scale)
+  canvas.height = Math.round(image.naturalHeight * scale)
+
+  const context = canvas.getContext('2d')
+  if (!context) return original
+
+  // PNG keeps see-through areas; everything else becomes a smaller JPEG.
+  const keepPng = file.type === 'image/png'
+
+  if (!keepPng) {
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  const resized = canvas.toDataURL(
+    keepPng ? 'image/png' : 'image/jpeg',
+    PHOTO_QUALITY,
+  )
+
+  return resized.length < original.length ? resized : original
+}
+
 interface ScrapbookTemplate {
   id: string
   name: string
@@ -603,20 +679,16 @@ export default function Scrapbook() {
       return
     }
 
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        addElement(makeElement('image', reader.result, 200, 120))
+    preparePhoto(file)
+      .then((dataUrl) => {
+        addElement(makeElement('image', dataUrl, 200, 120))
         setMessage('')
-      }
-    }
+      })
+      .catch((error: unknown) => {
+        console.error('Could not prepare the photo:', error)
+        setMessage('Could not read that image. Try another one.')
+      })
 
-    reader.onerror = () => {
-      setMessage('Could not read that image. Try another one.')
-    }
-
-    reader.readAsDataURL(file)
     event.target.value = ''
   }
 
