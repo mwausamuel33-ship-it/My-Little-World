@@ -8,6 +8,17 @@
     <meta name="description" content="A private space to journal, track your mood and make scrapbook pages." />
     <meta name="theme-color" content="#faf8f3" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // Use the saved colour theme before the page is drawn, to avoid a flash.
+      try {
+        var savedTheme = localStorage.getItem('my-little-world-theme')
+        if (savedTheme && savedTheme !== 'blush') {
+          document.documentElement.dataset.theme = savedTheme
+        }
+      } catch (error) {
+        console.warn('Could not read the saved theme:', error)
+      }
+    </script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
   <body>

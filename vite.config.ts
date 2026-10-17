@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
+import { themeColorsPlugin } from './vite.themes.ts'
 import { defineConfig, type Plugin } from 'vite'
 
 // Lists every file in a folder as paths like "assets/index-abc123.js".
@@ -130,4 +131,9 @@ function serviceWorkerPlugin(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), serviceWorkerPlugin()],
+  css: {
+    postcss: {
+      plugins: [themeColorsPlugin()],
+    },
+  },
 })

@@ -5,6 +5,7 @@ import BackupPanel from './BackupPanel'
 import SectionErrorBoundary from './SectionErrorBoundary'
 import UpdateNotice from './UpdateNotice'
 import CompanionCard from './CompanionCard'
+import ThemePicker from './ThemePicker'
 import './App.css'
 import './Home.css'
 
@@ -409,6 +410,8 @@ function App() {
             </div>
           )}
         </section>
+
+        <ThemePicker />
 
         <BackupPanel onRestored={loadEntries} />
       </>
