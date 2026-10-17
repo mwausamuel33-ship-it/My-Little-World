@@ -1,0 +1,114 @@
+/* The growing companion (tree or pet): Home card and Growth Garden page. */
+
+.growth-page { padding: 46px 0 20px; }
+.companion-intro { margin: 22px 0 0; font-size: 13px; line-height: 1.7; color: #96897d; }
+.companion-group-title {
+  margin: 26px 0 12px;
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #594c43;
+}
+
+/* ---- The little scene ---- */
+.companion-scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.companion-scene-large { width: 200px; height: 200px; margin: 0 auto; font-size: 96px; }
+.companion-scene-small { width: 76px; height: 76px; font-size: 38px; }
+.companion-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f3e5e1 0%, #e7eadf 70%, transparent 100%);
+}
+.companion-main { position: relative; transition: transform .4s ease; }
+.companion-extra { position: absolute; font-size: .34em; }
+.companion-extra-0 { top: 8%; left: 10%; }
+.companion-extra-1 { top: 14%; right: 8%; }
+.companion-extra-2 { bottom: 12%; left: 8%; }
+.companion-extra-3 { bottom: 8%; right: 12%; }
+
+/* ---- Choosing ---- */
+.companion-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.companion-option {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  text-align: center;
+  color: inherit;
+  background: #fffdf8;
+  border: 1px solid #eee6dc;
+  border-radius: 18px;
+  transition: transform .2s ease, border-color .2s ease;
+}
+.companion-option:hover { transform: translateY(-2px); }
+.companion-option.selected { background: #f3e5e1; border-color: #b18189; }
+.companion-option strong { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 400; color: #594c43; }
+.companion-option span:last-child { font-size: 11px; line-height: 1.5; color: #8d8175; }
+.companion-picker .journal-title-input { max-width: 360px; }
+
+/* ---- The garden ---- */
+.companion-garden {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-top: 22px;
+  padding: 28px 22px;
+  text-align: center;
+  background: #fffdf8;
+  border: 1px solid #eee6dc;
+  border-radius: 24px;
+}
+.companion-name { margin: 8px 0 0; font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 400; color: #51483f; }
+.companion-stage { margin: 0; font-size: 13px; color: #a78e79; letter-spacing: .6px; }
+.companion-progress { width: min(360px, 100%); height: 10px; margin-top: 8px; overflow: hidden; background: #efe6dd; border-radius: 999px; }
+.companion-progress > span { display: block; height: 100%; background: #b18189; border-radius: 999px; transition: width .4s ease; }
+.companion-progress-small { width: 100%; height: 7px; margin-top: 6px; }
+.companion-hint { margin: 4px 0 8px; font-size: 12px; color: #8d8175; }
+.companion-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 10px 0; }
+.companion-stat { display: grid; gap: 2px; min-width: 120px; padding: 12px 14px; background: #f5eee6; border-radius: 14px; }
+.companion-stat strong { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 400; color: #594c43; }
+.companion-stat span { font-size: 11px; color: #8d8175; }
+.companion-week { display: flex; gap: 10px; margin: 6px 0; padding: 0; list-style: none; }
+.companion-week li { display: grid; justify-items: center; gap: 2px; min-width: 34px; color: #b0a395; }
+.companion-week li.active { color: #b18189; }
+.companion-week li.today small { font-weight: 700; color: #594c43; }
+.companion-dot { font-size: 18px; line-height: 1.2; }
+.companion-week small { font-size: 10px; }
+.companion-how { max-width: 440px; margin: 8px 0 12px; font-size: 12px; line-height: 1.7; color: #8d8175; text-align: left; }
+.companion-how summary { cursor: pointer; text-align: center; color: #9e6d76; }
+
+/* ---- Card on the Home page ---- */
+.companion-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 26px;
+  padding: 16px 20px;
+  background: #fffdf8;
+  border: 1px solid #eee6dc;
+  border-radius: 20px;
+}
+.companion-card-emoji { display: grid; place-items: center; flex-shrink: 0; width: 76px; height: 76px; font-size: 34px; }
+.companion-card-copy { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.companion-card-copy strong { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; color: #594c43; }
+.companion-card-copy span { font-size: 12px; color: #8d8175; }
+
+@media (max-width: 480px) {
+  .companion-card { flex-wrap: wrap; }
+  .companion-card .primary-button, .companion-card .secondary-button { width: 100%; }
+  .companion-scene-large { width: 160px; height: 160px; font-size: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-main, .companion-progress > span, .companion-option { transition: none; }
+}

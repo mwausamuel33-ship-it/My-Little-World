@@ -1048,7 +1048,8 @@ export default function Scrapbook() {
               >
                 <div
                   style={{
-                    height: 160,
+                    aspectRatio: `${WIDTH} / ${HEIGHT}`,
+                    containerType: 'inline-size',
                     borderRadius: 10,
                     overflow: 'hidden',
                     position: 'relative',
@@ -1057,43 +1058,24 @@ export default function Scrapbook() {
                     marginBottom: 12,
                   }}
                 >
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '8%',
-                      top: '12%',
-                      fontSize: 28,
-                    }}
-                  >
-                    {template.emoji}
-                  </span>
-
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '20%',
-                      top: '18%',
-                      right: '8%',
-                      color: template.accent,
-                      fontFamily: 'Georgia, serif',
-                      fontSize: 20,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {template.title}
-                  </span>
-
-                  {template.elements.slice(1, 5).map((element, index) => (
+                  {/* A small copy of the real template page. Sizes are based
+                      on the width of this box, so everything shrinks together
+                      and nothing can pile up on top of anything else. */}
+                  {template.elements.map((element, index) => (
                     <span
                       key={`${template.id}-${index}`}
                       style={{
                         position: 'absolute',
-                        left: `${Math.min(85, Math.max(5, (element.x / WIDTH) * 100))}%`,
-                        top: `${Math.min(82, Math.max(5, (element.y / HEIGHT) * 100))}%`,
-                        fontSize: element.type === 'sticker' ? 24 : 12,
+                        left: `${(element.x / WIDTH) * 100}%`,
+                        top: `${(element.y / HEIGHT) * 100}%`,
+                        width: `${(element.width / WIDTH) * 100}%`,
+                        fontSize: `${(element.fontSize / WIDTH) * 100}cqw`,
+                        lineHeight: 1.2,
                         color: element.color,
-                        maxWidth: '75%',
-                        overflow: 'hidden',
+                        fontFamily: 'Georgia, serif',
+                        transform: `rotate(${element.rotation ?? 0}deg)`,
+                        transformOrigin: 'top left',
+                        pointerEvents: 'none',
                       }}
                     >
                       {element.content}
@@ -1103,9 +1085,9 @@ export default function Scrapbook() {
                   <span
                     style={{
                       position: 'absolute',
-                      bottom: 8,
-                      right: 10,
-                      fontSize: 11,
+                      bottom: '2%',
+                      right: '3%',
+                      fontSize: '2.4cqw',
                       color: template.accent,
                       opacity: 0.8,
                     }}

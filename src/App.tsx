@@ -4,11 +4,13 @@ import { db, type JournalEntry } from './db'
 import BackupPanel from './BackupPanel'
 import SectionErrorBoundary from './SectionErrorBoundary'
 import UpdateNotice from './UpdateNotice'
+import CompanionCard from './CompanionCard'
 import './App.css'
 import './Home.css'
 
 const MoodCalendar = lazy(() => import('./MoodCalendar'))
 const Scrapbook = lazy(() => import('./Scrapbook'))
+const GrowthGarden = lazy(() => import('./GrowthGarden'))
 
 const navigation = [
   { name: 'Home', icon: '⌂' },
@@ -296,6 +298,8 @@ function App() {
           <p>“You are allowed to grow at your own pace.”</p>
           <span>One little moment at a time ♡</span>
         </section>
+
+        <CompanionCard onOpen={() => setActiveSection('Growth')} />
 
         <section className="home-section">
           <div className="section-heading">
@@ -643,6 +647,16 @@ function App() {
               }
             >
               <Scrapbook />
+            </Suspense>
+          </SectionErrorBoundary>
+        ) : activeSection === 'Growth' ? (
+          <SectionErrorBoundary key="growth">
+            <Suspense
+              fallback={
+                <p className="empty-state">Waking up your little garden… 🌱</p>
+              }
+            >
+              <GrowthGarden />
             </Suspense>
           </SectionErrorBoundary>
         ) : (
